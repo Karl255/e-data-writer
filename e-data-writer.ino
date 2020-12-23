@@ -1,14 +1,14 @@
 /*
-PD0 = forward
-PD1 = reverse
-PD2 = mode
-PD3 = adjust
+ * PD0 = forward
+ * PD1 = reverse
+ * PD2 = mode
+ * PD3 = adjust
 */
 
 #define BUTTON A0
 
 // maps chars to their ordinal number in the e-Data char table
-// 0 = space
+// 0 = default char = space
 const int charMap[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	    // 0-31 don't map to anything
@@ -120,16 +120,21 @@ enum class Button {
 	Adjust = 3
 };
 
+// haven't played much with this, could probably be set lower
 const int delayTime = 100;
 
 void setup() {
+	// set the pins to output and high
 	DDRD |= B1111;
 	PORTD |= B1111;
 	pinMode(13, OUTPUT);
+	// at this point all pins are set high and the watch's ground can be connected to the Arduino's ground
+	// this process can be automated with a MOSFET like mentioned in README.md
 	digitalWrite(13, HIGH);
 	pinMode(BUTTON, INPUT_PULLUP);
 }
 
+// single press to the specified button with an equal high and low time defined by delayTime
 void press(Button n) {
 	PORTD &= ~(1 << (int)n);
 	delay(delayTime);
@@ -138,20 +143,26 @@ void press(Button n) {
 }
 
 void loop() {
+	// wait for button to be pressed
+	// before doing that the watch should be in the e-Data mode and ready to write
 	while (digitalRead(BUTTON));
 	
 	int i = 0;
 	
 	while (printString[i] != '\0') {
+		// writes the string into the e-Data memory
 		int count = charMap[printString[i]];
 		
+		// increment until at the right character
 		for (int j = 0; j < count; j++) {
 			press(Button::Forward);
 		}
 		
+		// next position
 		press(Button::Mode);
 		i++;
 	}
 	
+	// save and exit
 	press(Button::Adjust);
 }
